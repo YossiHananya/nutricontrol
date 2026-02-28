@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#0d4a35"/>
+      <stop offset="100%" stop-color="#1a7a56"/>
+    </linearGradient>
+    <linearGradient id="arcGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#c8a96e" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#c8a96e" stop-opacity="0.9"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded square background -->
+  <rect width="512" height="512" rx="96" ry="96" fill="url(#bgGrad)"/>
+
+  <!-- Subtle inner glow ring -->
+  <rect x="12" y="12" width="488" height="488" rx="86" ry="86"
+        fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="2"/>
+
+  <!-- Progress arc (like a gauge / target meter) -->
+  <!-- Background arc track -->
+  <path d="M 96 340 A 176 176 0 0 1 416 340"
+        fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="22"
+        stroke-linecap="round"/>
+  <!-- Filled arc ~75% -->
+  <path d="M 96 340 A 176 176 0 0 1 380 190"
+        fill="none" stroke="url(#arcGrad)" stroke-width="22"
+        stroke-linecap="round"/>
+  <!-- Tip dot -->
+  <circle cx="380" cy="190" r="13" fill="#c8a96e" opacity="0.9"/>
+
+  <!-- Leaf / sprout icon centred above text -->
+  <g transform="translate(256,218)">
+    <!-- Stem -->
+    <line x1="0" y1="44" x2="0" y2="-28"
+          stroke="rgba(200,169,110,0.8)" stroke-width="12" stroke-linecap="round"/>
+    <!-- Left leaf -->
+    <path d="M0,-2 C-52,-24 -66,-90 -26,-108 C-28,-56 -14,-28 0,-2Z"
+          fill="rgba(255,255,255,0.55)"/>
+    <!-- Right leaf -->
+    <path d="M0,-22 C46,-44 58,-104 22,-120 C20,-68 8,-42 0,-22Z"
+          fill="rgba(200,169,110,0.75)"/>
+  </g>
+
+  <!-- "NC" wordmark -->
+  <text x="256" y="400"
+        text-anchor="middle"
+        font-family="Georgia, 'Times New Roman', serif"
+        font-size="88"
+        font-weight="700"
+        letter-spacing="6"
+        fill="rgba(255,255,255,0.92)">NC</text>
+
+  <!-- Thin divider line under text -->
+  <line x1="178" y1="416" x2="334" y2="416"
+        stroke="rgba(200,169,110,0.45)" stroke-width="2" stroke-linecap="round"/>
+</svg>
