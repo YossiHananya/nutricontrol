@@ -22,20 +22,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set branch name
+      - name: Get branch name
         id: branch
         run: |
-          echo "name=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          echo "branch=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
 
-      - name: Prepare folder
-        run: |
-          mkdir site
-          cp -r * site/ || true
-
-      - name: Move to branch folder
+      - name: Prepare public folder
         run: |
           mkdir -p public/${{ steps.branch.outputs.name }}
-          cp -r site/* public/${{ steps.branch.outputs.name }}/
+          cp -r * public/${{ steps.branch.outputs.name }}/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
