@@ -18,7 +18,12 @@ function calcMonthlyTarget(year,month){
   for(let d=1;d<=total;d++){const wd=new Date(year,month,d).getDay();if(wd>=0&&wd<=4)days++;}
   return days*14;
 }
-function getMaxPay(user){const s=user.seniority||0;return s<2?2050:s<4?2870:4100;}
+function getMaxPay(user){
+  const s=user.seniority||0;
+  const basePay=s<2?2050:s<4?2870:4100;
+  const scope=Math.min(100,Math.max(1,parseFloat(user.scope)||100));
+  return Math.round(basePay*(scope/100));
+}
 function calcPay(user,pts,target){return Math.round(Math.min(1,target>0?pts/target:0)*getMaxPay(user));}
 
 

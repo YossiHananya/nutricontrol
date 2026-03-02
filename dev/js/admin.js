@@ -62,10 +62,11 @@ function showNutriDetail(userId){
   const pct=Math.min(100,Math.round(pts/target*100));
   const pay=calcPay(user,pts,target),maxPay=getMaxPay(user);
   const sv=user.seniority||0;
+  const scope=user.scope||100;
   const sLabel=sv<2?'0-2 שנות ותק':sv<4?'2-4 שנות ותק':'4+ שנות ותק';
   document.getElementById('nutri-detail-content').innerHTML=
     '<div class="page-title">'+user.name+'</div>'+
-    '<p class="page-subtitle">'+sLabel+' | יעד: '+target+' נק. | '+MHE[mo-1]+' '+y+'</p>'+
+    '<p class="page-subtitle">'+sLabel+' | '+scope+'% משרה | יעד: '+target+' נק. | '+MHE[mo-1]+' '+y+'</p>'+
     '<div class="points-hero" style="margin-bottom:16px">'+
       '<div class="month-label">'+MHE[mo-1]+' '+y+'</div>'+
       '<div class="points-main"><div class="points-number">'+fmtPts(pts)+'</div><div class="points-target">/ '+target+'</div></div>'+
@@ -200,15 +201,19 @@ async function saveEditRule(id){
 // ═══ SETTINGS / USERS ═══
 function renderAdminSettings(){renderAdminUserList();}
 function renderAdminUserList(){
-  const users=_users.filter(u=>u.role==='nutritionist');
+  const users=_users.filter(u=>u.id!==currentUser.id);
   const el=document.getElementById('admin-user-list');
-  if(!users.length){el.innerHTML='<p class="text-muted">אין תזונאים עדיין.</p>';return;}
+  if(!users.length){el.innerHTML='<p class="text-muted">אין משתמשים נוספים.</p>';return;}
   el.innerHTML=users.map(u=>{
+    const isAdmin=u.role==='admin';
     const sv=u.seniority||0;
-    const sLabel=sv<2?'0-2 שנות ותק':sv<4?'2-4 שנות ותק':'4+ שנות ותק';
+    const scope=u.scope||100;
+    const sLabel=isAdmin?'מנהל/ת':(sv<2?'0-2 שנות ותק':sv<4?'2-4 שנות ותק':'4+ שנות ותק');
+    const scopeLabel=isAdmin?'':`  |  ${scope}% משרה`;
+    const roleBadge=isAdmin?'<span style="background:#e8f4fd;color:#1565c0;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;margin-right:6px">מנהל</span>':'';
     return '<div class="nutri-row" style="cursor:default">'+
       '<div class="nutri-avatar">'+u.avatar+'</div>'+
-      '<div class="nutri-info"><div class="nutri-name">'+u.name+'</div><div class="nutri-meta">'+sLabel+'</div></div>'+
+      '<div class="nutri-info"><div class="nutri-name">'+roleBadge+u.name+'</div><div class="nutri-meta">'+sLabel+scopeLabel+'</div></div>'+
       '<div style="display:flex;gap:6px">'+
         '<button onclick="showEditUserModal(\''+u.id+'\')" style="background:var(--accent-light);border:none;border-radius:8px;padding:6px 10px;cursor:pointer">✏️</button>'+
         '<button onclick="removeUser(\''+u.id+'\')" style="background:var(--danger-light);border:none;border-radius:8px;padding:6px 10px;cursor:pointer;color:var(--danger)">🗑</button>'+
@@ -226,22 +231,37 @@ async function removeUser(id){
 }
 function showEditUserModal(id){
   const u=_users.find(u=>u.id===id);if(!u)return;
-  let html='<div class="modal-title">עריכת תזונאי</div>';
-  html+='<div class="form-group"><label>שם</label><input type="text" id="eu-name"></div>';
-  html+='<div class="form-group"><label>ותק (שנים)</label><input type="number" id="eu-seniority" min="0" step="0.5"></div>';
-  html+='<button class="btn btn-primary" id="eu-save-btn">שמור שינויים</button>';
+  const isAdmin=u.role==='admin';
+  let html=`<div class="modal-title">עריכת משתמש</div>
+    <div class="form-group"><label>שם</label><input type="text" id="eu-name"></div>
+    <div class="form-group"><label>תפקיד</label>
+      <select id="eu-role" onchange="toggleEuFields()" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:10px;font-family:Rubik,sans-serif;font-size:14px;background:var(--surface)">
+        <option value="nutritionist">תזונאי/ת</option>
+        <option value="admin">מנהל/ת</option>
+      </select>
+    </div>
+    <div id="eu-nutri-fields">
+      <div class="form-group"><label>ותק (שנים)</label><input type="number" id="eu-seniority" min="0" step="0.5"></div>
+      <div class="form-group"><label>אחוזי משרה (%)</label><input type="number" id="eu-scope" min="1" max="100" step="1"></div>
+    </div>
+    <button class="btn btn-primary" id="eu-save-btn">שמור שינויים</button>`;
   openModal(html);
   document.getElementById('eu-name').value=u.name;
+  document.getElementById('eu-role').value=u.role||'nutritionist';
   document.getElementById('eu-seniority').value=u.seniority||0;
+  document.getElementById('eu-scope').value=u.scope||100;
+  if(isAdmin)document.getElementById('eu-nutri-fields').style.display='none';
   document.getElementById('eu-save-btn').onclick=async function(){
     const name=document.getElementById('eu-name').value.trim();
     if(!name){showToast('נא למלא שם');return;}
-    const sen=parseFloat(document.getElementById('eu-seniority').value)||0;
+    const role=document.getElementById('eu-role').value;
+    const sen=role==='admin'?0:parseFloat(document.getElementById('eu-seniority').value)||0;
+    const scope=role==='admin'?100:Math.min(100,Math.max(1,parseInt(document.getElementById('eu-scope').value)||100));
     const avatar=name.split(' ').map(w=>w[0]).join('').slice(0,2);
     try{
-      await sbUpdate('users',id,{name,seniority:sen,avatar});
+      await sbUpdate('users',id,{name,role,seniority:sen,scope,avatar});
       const idx=_users.findIndex(u=>u.id===id);
-      if(idx>-1)Object.assign(_users[idx],{name,seniority:sen,avatar});
+      if(idx>-1)Object.assign(_users[idx],{name,role,seniority:sen,scope,avatar});
       closeModal();
       renderAdminUserList();
       renderAdminOverview();
@@ -249,13 +269,32 @@ function showEditUserModal(id){
     }catch(e){showToast('שגיאה: '+e.message);}
   };
 }
+function toggleEuFields(){
+  const role=document.getElementById('eu-role')?.value;
+  const fields=document.getElementById('eu-nutri-fields');
+  if(fields)fields.style.display=role==='admin'?'none':'block';
+}
 function showAddUserModal(){
-  openModal(`<div class="modal-title">הוסף תזונאי/ת</div>
+  openModal(`<div class="modal-title">הוסף משתמש</div>
     <div class="form-group"><label>שם מלא</label><input type="text" id="nu-name"></div>
     <div class="form-group"><label>אימייל</label><input type="email" id="nu-email"></div>
     <div class="form-group"><label>סיסמה זמנית</label><input type="text" id="nu-pass" placeholder="temp123"></div>
-    <div class="form-group"><label>ותק (שנים)</label><input type="number" id="nu-seniority" value="0" min="0" step="1"></div>
+    <div class="form-group"><label>תפקיד</label>
+      <select id="nu-role" onchange="toggleNuFields()" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:10px;font-family:Rubik,sans-serif;font-size:14px;background:var(--surface)">
+        <option value="nutritionist">תזונאי/ת</option>
+        <option value="admin">מנהל/ת</option>
+      </select>
+    </div>
+    <div id="nu-nutri-fields">
+      <div class="form-group"><label>ותק (שנים)</label><input type="number" id="nu-seniority" value="0" min="0" step="0.5"></div>
+      <div class="form-group"><label>אחוזי משרה (%)</label><input type="number" id="nu-scope" value="100" min="1" max="100" step="1"></div>
+    </div>
     <button class="btn btn-primary" onclick="saveNewUser()">הוסף</button>`);
+}
+function toggleNuFields(){
+  const role=document.getElementById('nu-role')?.value;
+  const fields=document.getElementById('nu-nutri-fields');
+  if(fields)fields.style.display=role==='admin'?'none':'block';
 }
 async function saveNewUser(){
   const name=document.getElementById('nu-name').value.trim();
@@ -264,11 +303,14 @@ async function saveNewUser(){
   if(!name||!email||!pass){showToast('נא למלא את כל השדות');return;}
   const existing=_users.find(u=>u.email===email);
   if(existing){showToast('אימייל כבר קיים');return;}
-  const sen=parseFloat(document.getElementById('nu-seniority')?.value)||0;
+  const role=document.getElementById('nu-role')?.value||'nutritionist';
+  const sen=role==='admin'?0:parseFloat(document.getElementById('nu-seniority')?.value)||0;
+  const scope=role==='admin'?100:Math.min(100,Math.max(1,parseInt(document.getElementById('nu-scope')?.value)||100));
   const avatar=name.split(' ').map(w=>w[0]).join('').slice(0,2);
   try{
-    const u=await sbInsert('users',{id:'u'+Date.now(),name,email,password:pass,role:'nutritionist',seniority:sen,avatar});
+    const u=await sbInsert('users',{id:'u'+Date.now(),name,email,password:pass,role,seniority:sen,scope,avatar});
     _users.push(u);
-    closeModal();renderAdminUserList();renderAdminOverview();showToast('התזונאי/ת נוסף/ה!');
+    closeModal();renderAdminUserList();renderAdminOverview();
+    showToast(role==='admin'?'המנהל/ת נוסף/ה! ✅':'התזונאי/ת נוסף/ה! ✅');
   }catch(e){showToast('שגיאה: '+e.message);}
 }
