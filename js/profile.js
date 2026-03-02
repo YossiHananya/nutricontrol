@@ -9,13 +9,17 @@
 
 function showProfileModal(){
   const sv=currentUser.seniority||0;
+  const scope=currentUser.scope||100;
   const sLabel=sv<2?'0-2 שנות ותק':sv<4?'2-4 שנות ותק':'4+ שנות ותק';
   openModal(`<div class="modal-title">הפרופיל שלי</div>
     <div style="text-align:center;margin-bottom:20px">
       <div style="width:72px;height:72px;background:var(--primary);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;margin:0 auto 12px">${currentUser.avatar}</div>
       <div style="font-weight:700;font-size:18px">${currentUser.name}</div>
       <div style="color:var(--text-muted);font-size:13px">${currentUser.email}</div>
-      ${currentUser.role==='nutritionist'?`<div style="margin-top:6px;background:var(--accent-light);border-radius:8px;padding:4px 12px;font-size:12px;color:var(--primary);display:inline-block">${sLabel}</div>`:''}
+      ${currentUser.role==='nutritionist'?`<div style="margin-top:6px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
+        <span style="background:var(--accent-light);border-radius:8px;padding:4px 12px;font-size:12px;color:var(--primary)">${sLabel}</span>
+        <span style="background:var(--accent-light);border-radius:8px;padding:4px 12px;font-size:12px;color:var(--primary)">${scope}% משרה</span>
+      </div>`:''}
     </div>
     <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:16px">
       <div class="card-title">🔒 שינוי סיסמה</div>
