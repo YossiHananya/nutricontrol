@@ -1,0 +1,43 @@
+name: Deploy PWA to Github Pages
+
+on:
+  push:
+    branches:
+      - "**"
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Get branch name
+        id: branch
+        run: |
+          echo "branch=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Clone gh-pages branch
+        run: |
+          git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages
+          cd gh-pages
+          git checkout gh-pages || git checkout --orphan gh-pages
+          cd ..
+
+      - name: Copy files
+        run: |
+          mkdir -p gh-pages/${{ steps.branch.outputs.branch }}
+          rsync -av --exclude .git --exclude gh-pages ./ gh-pages/${{ steps.branch.outputs.branch }}/
+
+      - name: Commit & push
+        run: |
+          cd gh-pages
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add .
+          git commit -m "Deploy ${{ steps.branch.outputs.branch }}" || echo "No changes"
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages

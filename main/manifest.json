@@ -1,0 +1,36 @@
+{
+  "name": "NutriControl — מערכת מעקב תזונאים",
+  "short_name": "NutriControl",
+  "description": "מערכת ניהול ומעקב נקודות לתזונאים קליניים",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#0a3d2e",
+  "background_color": "#0a3d2e",
+  "lang": "he",
+  "dir": "rtl",
+  "scope": "./",
+  "categories": ["health", "productivity", "medical"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
+}
