@@ -27,10 +27,14 @@ jobs:
         run: |
           echo "branch=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
 
-      - name: Prepare public folder
+      - name: Prepare folders
         run: |
-          mkdir -p public/${{ steps.branch.outputs.name }}
-          cp -r * public/${{ steps.branch.outputs.name }}/
+          mkdir -p site
+          mkdir -p public/${{ steps.branch.outputs.branch }}
+
+      - name: Copy files safely
+        run: |
+          rsync -av --exclude public --exclude .git --exclude .github ./public/${{ steps.branch.outputs.branch }}/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
