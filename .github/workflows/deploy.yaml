@@ -3,23 +3,14 @@ name: Deploy PWA to Github Pages
 on:
   push:
     branches:
-      - main
-      - dev
-      - feature-*
-      - test
-      - staging
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+      - "**"
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Get branch name
@@ -27,19 +18,23 @@ jobs:
         run: |
           echo "branch=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
 
-      - name: Prepare folders
+      - name: Clone gh-pages
         run: |
-          mkdir -p site
-          mkdir -p public/${{ steps.branch.outputs.branch }}
+          git clone https://github.com/${{ github.repository }}.git gh-pages
+          cd gh=pages
+          git checkout gh-pages || git checkout --orphan gh-pages
+          cd ..
 
-      - name: Copy files safely
+      - name: Copy files
         run: |
-          rsync -av --exclude public --exclude .git --exclude .github ./public/${{ steps.branch.outputs.branch }}/
+          mkdir -p gh-pages/${{ steps.branch.outputs.branch }}
+          rsync -av --exclude .git --exclude gh-pages ./ gh-pages/${{ steps.branch.outputs.branch }}/
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: public
-
-      - name: Deploy
-        uses: actions/deploy-pages@v4
+      - name: Commit & push
+        run: |
+          cd gh-pages
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add .
+          git commit -m "Deploy ${{ steps.branch.outputs.branch }}" || echo "No changes"
+          git push origin gh-pages
