@@ -1,0 +1,46 @@
+name: Deploy PWA to Github Pages
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - feature-*
+      - test
+      - staging
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set branch name
+        id: branch
+        run: |
+          echo "name=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Prepare folder
+        run: |
+          mkdir site
+          cp -r * site/ || true
+
+      - name: Move to branch folder
+        run: |
+          mkdir -p public/${{ steps.branch.outputs.name }}
+          cp -r site/* public/${{ steps.branch.outputs.name }}/
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifacts@v3
+        with:
+          path: public
+
+      - name: Deploy
+        uses: actions/deploy-pages@v4
