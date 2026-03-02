@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0a3d2e">
+  <meta name="description" content="מערכת ניהול ומעקב נקודות לתזונאים קליניים">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="NutriControl">
+
+  <title>NutriControl</title>
+
+  <!-- PWA manifest -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Icons -->
+  <link rel="icon"             type="image/svg+xml" href="icons/icon.svg">
+  <link rel="icon"             type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- CDN libraries (loaded before app scripts) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-logo">NutriControl</div>
+  <div class="auth-sub">מערכת ניהול תפוקות תזונאים</div>
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="showAuthTab('login',this)">כניסה</button>
+      <button class="auth-tab" onclick="showAuthTab('register',this)">הרשמה</button>
+    </div>
+    <div id="login-form">
+      <div class="form-group"><label>אימייל</label><input type="email" id="login-email"></div>
+      <div class="form-group"><label>סיסמה</label><input type="password" id="login-pass"></div>
+      <button class="btn btn-primary" onclick="doLogin()">כניסה למערכת</button>
+    </div>
+    <div id="register-form" class="hidden">
+      <div class="form-group"><label>שם מלא</label><input type="text" id="reg-name"></div>
+      <div class="form-group"><label>אימייל</label><input type="email" id="reg-email"></div>
+      <div class="form-group"><label>סיסמה</label><input type="password" id="reg-pass"></div>
+      <button class="btn btn-primary" onclick="doRegister()">הרשמה</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+
+  <!-- NUTRITIONIST PAGES -->
+  <div id="nutri-pages" class="hidden">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-title" id="dash-greeting">בוקר טוב 👋</div>
+      <div class="page-subtitle" id="dash-name"></div>
+      <div id="dash-month" style="font-size:13px;color:var(--text-muted);margin-bottom:16px"></div>
+
+      <!-- Pay card -->
+      <div class="card" style="background:var(--primary);color:#fff;padding:20px;margin-bottom:16px">
+        <div style="font-size:12px;opacity:.7;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">💰 אמדן שכר חודשי</div>
+        <div id="dash-pay" style="font-size:28px;font-family:'DM Serif Display',serif">...</div>
+      </div>
+
+      <div class="points-hero">
+        <div class="month-label" id="dash-month-label"></div>
+        <div class="points-main">
+          <div class="points-number" id="dash-pts">0</div>
+          <div class="points-target" id="dash-target">/ 0 נקודות</div>
+        </div>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" id="dash-progress" style="width:0%"></div></div>
+        <div class="progress-label" id="dash-progress-label">0% מהיעד החודשי</div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-num" id="dash-total-logs">0</div><div class="stat-label">רשומות החודש</div></div>
+        <div class="stat-card"><div class="stat-icon">🎯</div><div class="stat-num" id="dash-pct-display">0%</div><div class="stat-label">הושלם מהיעד</div></div>
+      </div>
+      <!-- Trend chart -->
+      <div class="card" style="margin-bottom:12px;overflow:hidden;background:var(--primary);color:#fff">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div class="card-title" style="margin-bottom:0;color:rgba(255,255,255,.7);font-size:12px">📈 נקודות השבוע הנוכחי</div>
+          <div id="trend-total-label" style="font-size:12px;color:rgba(255,255,255,.6)"></div>
+        </div>
+        <div id="trend-bars" style="display:flex;align-items:flex-end;gap:3px;height:96px;overflow:visible"></div>
+        <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:10px;color:rgba(255,255,255,.4);padding:0 2px">
+          <span>א׳</span><span>ב׳</span><span>ג׳</span><span>ד׳</span><span>ה׳</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🕐 פעילויות אחרונות</div>
+        <div id="recent-activity-list"><p class="text-muted">אין פעילויות עדיין.</p></div>
+      </div>
+    </div>
+
+    <!-- LOG -->
+    <div class="page" id="page-log">
+      <div class="page-title">רישום פעילות</div>
+      <p class="page-subtitle">בחר סוג פעילות ורשום</p>
+      <div class="section-label">סוג פעילות</div>
+      <div class="pill-group" id="cat-pills">
+        <button class="pill" onclick="selectCategory(this,'assessment')">הערכה תזונתית</button>
+        <button class="pill" onclick="selectCategory(this,'followup')">מעקב חוזר</button>
+        <button class="pill" onclick="selectCategory(this,'general')">כללי</button>
+        <button class="pill" onclick="selectCategory(this,'non-clinical')">פעולות לא טיפוליות</button>
+      </div>
+      <div id="sub-activity-fields">
+        <div class="section-label">בחר תת-סוג</div>
+        <div id="sub-pill-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px"></div>
+        <div id="non-clinical-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px"></div>
+        <div id="timed-group" class="timed-group hidden">
+          <div class="form-group" style="margin-bottom:0"><label>משך בדקות</label><input type="number" id="timed-duration" placeholder="לדוגמה: 45" min="1" oninput="calcPoints()"></div>
+        </div>
+      </div>
+      <!-- Date: native calendar, IL format display on desktop -->
+      <div class="form-group" style="margin-top:16px"><label>תאריך</label>
+        <div class="date-wrapper">
+          <input type="date" id="log-date" onchange="updateDateDisplay()">
+          <div class="date-il-display" onclick="openDatePicker()">
+            <span id="log-date-display" style="font-weight:600;color:var(--primary);letter-spacing:.5px">בחר תאריך</span>
+            <span class="cal-icon">📅</span>
+          </div>
+        </div>
+      </div>
+      <div class="form-group"><label>הערות (אופציונלי)</label><textarea id="log-notes" placeholder="הערות נוספות…"></textarea></div>
+      <div class="points-preview">
+        <div class="points-preview-label">נקודות לרישום</div>
+        <div class="points-preview-num" id="points-display">0</div>
+      </div>
+      <button class="btn btn-primary" style="margin-top:16px" onclick="submitLog()">✅ רשום פעילות</button>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="page" id="page-history">
+      <div class="page-title">היסטוריה</div>
+      <p class="page-subtitle">פעילויות לפי חודש</p>
+
+      <!-- Month scroller -->
+      <div id="month-scroller-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin-bottom:12px">
+        <div id="month-scroller" style="display:flex;gap:8px;padding:4px 2px;min-width:max-content"></div>
+      </div>
+
+      <!-- Filter + sort -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <select id="hist-cat-filter" onchange="applyHistFilters()" style="flex:1;min-width:130px;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:Rubik,sans-serif;font-size:13px;background:var(--surface)">
+          <option value="">כל סוגי הפעילות</option>
+          <option value="assessment">הערכה תזונתית</option>
+          <option value="followup">מעקב חוזר</option>
+          <option value="general">כללי</option>
+          <option value="non-clinical">פעולות לא טיפוליות</option>
+        </select>
+        <select id="hist-sort" onchange="applyHistFilters()" style="flex:1;min-width:130px;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:Rubik,sans-serif;font-size:13px;background:var(--surface)">
+          <option value="date-desc">תאריך — חדש לישן</option>
+          <option value="date-asc">תאריך — ישן לחדש</option>
+          <option value="pts-desc">נקודות — גבוה לנמוך</option>
+          <option value="pts-asc">נקודות — נמוך לגבוה</option>
+        </select>
+      </div>
+
+      <!-- Export buttons -->
+      <button class="btn btn-excel" onclick="exportNutriExcel()" style="margin-bottom:8px">⬇️ ייצוא חודש לאקסל</button>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <button class="btn btn-secondary btn-sm" onclick="exportNutriPeriod('quarter')" style="flex:1;font-size:12px">📊 רבעוני</button>
+        <button class="btn btn-secondary btn-sm" onclick="exportNutriPeriod('year')" style="flex:1;font-size:12px">📊 שנתי</button>
+      </div>
+
+      <div id="history-stats"></div>
+      <!-- Monthly trend in history -->
+      <div class="card" style="margin-bottom:12px;overflow:hidden">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div class="card-title" style="margin-bottom:0">📈 מגמה חודשית — 6 חודשים</div>
+          <div style="display:flex;gap:10px;font-size:11px;color:var(--text-muted)">
+            <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:var(--primary);display:inline-block"></span>נצברו</span>
+            <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:2px;border-top:1.5px dashed var(--accent);display:inline-block"></span>יעד</span>
+          </div>
+        </div>
+        <div id="hist-trend-bars" style="display:flex;align-items:flex-end;gap:4px;height:96px"></div>
+      </div>
+      <div id="history-list"><p class="text-muted">אין פעילויות עדיין.</p></div>
+    </div>
+
+    <nav id="nav-nutritionist">
+      <button class="nav-item active" onclick="showPage('dashboard',this)"><span class="nav-icon">🏠</span>בית</button>
+      <button class="nav-item" onclick="showPage('log',this)"><span class="nav-icon">➕</span>רישום</button>
+      <button class="nav-item" onclick="showPage('history',this)"><span class="nav-icon">📋</span>היסטוריה</button>
+      <button class="nav-item" onclick="showScoringInfo()"><span class="nav-icon">📊</span>מודל</button>
+      <button class="nav-item" onclick="showProfileModal()"><span class="nav-icon">👤</span>פרופיל</button>
+    </nav>
+  </div>
+
+  <!-- ADMIN PAGES -->
+  <div id="admin-pages" class="hidden">
+    <div class="page active" id="page-admin">
+
+      <!-- Overview sub -->
+      <div id="admin-sub-overview">
+        <div class="page-title">סקירה</div>
+        <p class="page-subtitle">מצב חודשי לפי תזונאי</p>
+
+        <!-- Admin month scroller -->
+        <div id="admin-month-scroller-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin-bottom:12px">
+          <div id="admin-month-scroller" style="display:flex;gap:8px;padding:4px 2px;min-width:max-content"></div>
+        </div>
+
+        <!-- Export -->
+        <div class="card">
+          <div class="card-title">📤 ייצוא לאקסל</div>
+          <button class="btn btn-excel" onclick="exportAdminExcel()" style="margin-bottom:8px">⬇️ ייצוא חודש לאקסל</button>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-secondary btn-sm" onclick="exportPeriodExcel('quarter')" style="flex:1;font-size:12px">📊 רבעוני</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportPeriodExcel('year')" style="flex:1;font-size:12px">📊 שנתי</button>
+          </div>
+        </div>
+
+        <div id="admin-nutri-list"></div>
+      </div>
+
+      <!-- Detail sub -->
+      <div id="admin-sub-detail" class="hidden">
+        <button onclick="showAdminSub('overview')" style="background:none;border:none;color:var(--primary);font-family:Rubik,sans-serif;font-size:14px;cursor:pointer;padding:0;margin-bottom:16px">← חזרה לרשימה</button>
+        <div id="nutri-detail-content"></div>
+      </div>
+
+      <!-- Rules sub -->
+      <div id="admin-sub-rules" class="hidden">
+        <div class="page-title">כללי ניקוד</div>
+        <p class="page-subtitle">הגדרת נקודות לכל פעילות</p>
+        <div class="card" style="margin-bottom:16px">
+          <button class="btn btn-primary" onclick="showAddRuleModal()">+ הוסף כלל</button>
+        </div>
+        <div id="rules-list"></div>
+      </div>
+
+      <!-- Settings sub -->
+      <div id="admin-sub-settings" class="hidden">
+        <div class="page-title">הגדרות</div>
+        <div class="card">
+          <div class="card-title">👤 חשבונות תזונאים</div>
+          <div id="admin-user-list" style="margin-bottom:16px"></div>
+          <button class="btn btn-secondary" onclick="showAddUserModal()">+ הוסף תזונאי/ת</button>
+        </div>
+      </div>
+    </div>
+
+    <nav id="nav-admin">
+      <button class="nav-item active" onclick="showAdminNav('overview',this)"><span class="nav-icon">📊</span>סקירה</button>
+      <button class="nav-item" onclick="showAdminNav('rules',this)"><span class="nav-icon">⚙️</span>כללים</button>
+      <button class="nav-item" onclick="showAdminNav('settings',this)"><span class="nav-icon">👥</span>משתמשים</button>
+      <button class="nav-item" onclick="showScoringInfo()"><span class="nav-icon">ℹ️</span>מודל</button>
+      <button class="nav-item" onclick="showProfileModal()"><span class="nav-icon">👤</span>פרופיל</button>
+    </nav>
+  </div>
+
+</div>
+
+<!-- Modal -->
+<div id="modal-overlay" class="hidden" onclick="closeModal(event)">
+  <div id="modal-body"></div>
+</div>
+<div id="toast"></div>
+
+<!-- ═══════════════════════════════════════════════
+     App modules — load order matters:
+     db & utils first (globals), then features, ui last
+     ═══════════════════════════════════════════════ -->
+<script src="js/db.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/log.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/history.js"></script>
+<script src="js/admin.js"></script>
+<script src="js/profile.js"></script>
+<script src="js/export.js"></script>
+<script src="js/ui.js"></script>
+
+<!-- Service Worker registration -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg  => console.log('[SW] Registered:', reg.scope))
+        .catch(err => console.warn('[SW] Registration failed:', err));
+    });
+  }
+</script>
+
+</body>
+</html>
